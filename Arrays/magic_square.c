@@ -2,8 +2,7 @@
 Loïs GALLAUD
 25/02
 
-This script is a simple example of how to use arrays in C.
-It shows how to use a fixed size array and how to sort it.
+This script is a test of the magic square algorithm.
 */
 
 #include<stdio.h>    /* prototypes de printf,scanf */
