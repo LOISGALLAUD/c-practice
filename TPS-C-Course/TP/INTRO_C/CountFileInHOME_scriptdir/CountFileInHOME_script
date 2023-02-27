@@ -1,0 +1,5 @@
+mkdir ./countFileInHOMEdir
+ls /adhome/l/lg/lgallaud > ./countFileInHOMEdir/homeFileList
+echo -n "Le nombre de fichiers présents dans mon répertoire /adhome/l/lg/lgallaud/ est " > ./countFileInHOMEdir/countFileInHOME
+wc -l ./countFileInHOMEdir/homeFileList >> ./countFileInHOMEdir/countFileInHOME
+cat ./countFileInHOMEdir/countFileInHOME
