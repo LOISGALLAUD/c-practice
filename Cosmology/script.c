@@ -17,6 +17,9 @@ double velocity_from_Z(double z){
     return c*z;
 }
 
+double d_from_magnitude(double magnitude){
+    return 286.7*magnitude-4450.7;
+}
 
 /*Main function*/
 int main(){
