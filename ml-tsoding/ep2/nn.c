@@ -191,6 +191,7 @@ int main(void)
     float rate = 1e-1;
 
     printf("cost: %f\n", cost(m, ti, to));
+
     for (size_t i = 0; i < 10; ++i)
     {
         printf("cost: %f\n", cost(m, ti, to));

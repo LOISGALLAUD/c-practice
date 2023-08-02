@@ -62,7 +62,6 @@ Mat mat_alloc(size_t rows, size_t cols)
     m.cols = cols;
     m.stride = cols;
     m.es = malloc(rows * cols * sizeof(*m.es));
-
     assert(m.es != NULL);
     return m;
 }
