@@ -2,4 +2,4 @@
 
 set -xe
 
-clang -Wall -g -Wextra -o nn nn.c -lm
+gcc -Wall -Wextra -Werror -Wpedantic -Og -g -o nn nn.c -lm

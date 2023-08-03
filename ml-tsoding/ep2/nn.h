@@ -10,11 +10,20 @@
 #define NN_MALLOC malloc
 #endif // NN_MALLOC
 
+#ifndef NN_FREE
+#include <stdlib.h>
+#define NN_FREE free
+#endif // NN_FREE
+
 #ifndef NN_ASSERT
 #include <assert.h>
 #define NN_ASSERT assert
 #endif // NN_ASSERT
 
+#define ARRAY_LEN(xs) (sizeof(xs) / sizeof(xs[0]))
+
+float rand_float(void);
+float sigmoidf(float x);
 typedef struct
 {
     // Doesn't contain the data itself
@@ -27,10 +36,8 @@ typedef struct
 
 #define MAT_AT(m, i, j) (m).es[(i) * (m).stride + (j)]
 
-float rand_float(void);
-float sigmoidf(float x);
-
 Mat mat_alloc(size_t rows, size_t cols);
+Mat mat_free(Mat m);
 void mat_fill(Mat m, float x);
 void mat_rand(Mat m, float low, float high);
 Mat mat_row(Mat m, size_t row);
@@ -38,8 +45,21 @@ void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_sig(Mat m);
-void mat_print(Mat m, const char *name);
-#define MAT_PRINT(m) mat_print(m, #m) // #m is a stringification of m
+void mat_print(Mat m, const char *name, size_t padding);
+#define MAT_PRINT(m) mat_print(m, #m, 0) // #m is a stringification of m
+
+typedef struct
+{
+    size_t count;
+    Mat *ws;
+    Mat *bs;
+    Mat *as; // The amount of activations is count + 1
+} NN;
+
+NN nn_alloc(size_t *arch, size_t arch_count);
+void nn_print(NN nn, const char *name);
+
+#define NN_PRINT(nn) nn_print(nn, #nn)
 
 #endif // NN_H
 
@@ -63,6 +83,13 @@ Mat mat_alloc(size_t rows, size_t cols)
     m.stride = cols;
     m.es = malloc(rows * cols * sizeof(*m.es));
     assert(m.es != NULL);
+    return m;
+}
+
+Mat mat_free(Mat m)
+{
+    free(m.es);
+    m.es = NULL;
     return m;
 }
 
@@ -99,6 +126,7 @@ void mat_dot(Mat dst, Mat a, Mat b)
     {
         for (size_t j = 0; j < dst.cols; ++j)
         {
+            MAT_AT(dst, i, j) = 0;
             for (size_t k = 0; k < n; ++k)
             {
                 MAT_AT(dst, i, j) += MAT_AT(a, i, k) * MAT_AT(b, k, j);
@@ -154,17 +182,61 @@ void mat_sig(Mat m)
     }
 }
 
-void mat_print(Mat m, const char *name)
+void mat_print(Mat m, const char *name, size_t padding)
 {
-    printf("%s = [\n", name);
+    printf("%*s%s = [\n", (int)padding, "", name);
     for (size_t i = 0; i < m.rows; ++i)
     {
+        printf("%*s\t", (int)padding, "");
         for (size_t j = 0; j < m.cols; ++j)
         {
-            printf("\t%f ", MAT_AT(m, i, j));
+            printf("%f ", MAT_AT(m, i, j));
         }
         printf("\n");
     }
+    printf("%*s]\n", (int)padding, "");
+}
+
+NN nn_alloc(size_t *arch, size_t arch_count)
+{
+    NN_ASSERT(arch_count > 1);
+
+    NN nn;
+    nn.count = arch_count - 1;
+
+    // Allocate weights, biases and activations
+    nn.ws = NN_MALLOC(sizeof(*nn.ws) * nn.count);
+    NN_ASSERT(nn.ws != NULL);
+    nn.bs = NN_MALLOC(sizeof(*nn.bs) * nn.count);
+    NN_ASSERT(nn.bs != NULL);
+    nn.as = NN_MALLOC(sizeof(*nn.as) * nn.count);
+    NN_ASSERT(nn.as != NULL);
+
+    // Allocate for the input layer
+    nn.as[0] = mat_alloc(1, arch[0]);
+
+    for (size_t i = 1; i < arch_count; ++i)
+    {
+        nn.ws[i - 1] = mat_alloc(nn.as[i - 1].cols, arch[i]);
+        nn.bs[i - 1] = mat_alloc(1, arch[i]);
+        nn.as[i] = mat_alloc(1, arch[i]);
+    }
+
+    return nn;
+}
+
+void nn_print(NN nn, const char *name)
+{
+    char buf[256];
+    printf("%s = [\n", name);
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        snprintf(buf, sizeof(buf), "ws%zu", i);
+        mat_print(nn.ws[i], "ws", 4);
+        snprintf(buf, sizeof(buf), "bs%zu", i);
+        mat_print(nn.bs[i], "bs", 4);
+    }
     printf("]\n");
 }
+
 #endif // NN_H

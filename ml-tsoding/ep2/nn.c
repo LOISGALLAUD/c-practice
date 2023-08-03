@@ -23,6 +23,17 @@ Xor xor_alloc(void)
     return m;
 }
 
+void xor_free(Xor m)
+{
+    mat_free(m.a0);
+    mat_free(m.a1);
+    mat_free(m.a2);
+    mat_free(m.w1);
+    mat_free(m.b1);
+    mat_free(m.w2);
+    mat_free(m.b2);
+}
+
 float forward_xor(Xor m)
 {
     mat_dot(m.a1, m.a0, m.w1);
@@ -165,6 +176,12 @@ int main(void)
 {
     srand(time(0));
 
+    size_t arch[] = {2, 2, 1};
+    NN nn = nn_alloc(arch, ARRAY_LEN(arch));
+    nn_print(nn, "nn");
+
+    return 0;
+
     size_t stride = 3;
     size_t n = sizeof(td) / sizeof(td[0]) / 3;
     Mat ti = {
@@ -190,17 +207,17 @@ int main(void)
     float eps = 1e-1;
     float rate = 1e-1;
 
-    printf("cost: %f\n", cost(m, ti, to));
-
-    for (size_t i = 0; i < 10; ++i)
+    for (size_t i = 0; i < 10 * 1000; ++i)
     {
-        printf("cost: %f\n", cost(m, ti, to));
+        printf("%zu cost: %f\n", i, cost(m, ti, to));
         finite_diff(m, g, eps, ti, to);
         xor_learn(m, g, rate);
     }
-    printf("cost: %f\n", cost(m, ti, to));
 
-#if 0
+    // printf("cost: %f\n", cost(m, ti, to));
+
+#if 1
+
     for (size_t i = 0; i < 2; ++i)
     {
         for (size_t j = 0; j < 2; ++j)
@@ -209,9 +226,13 @@ int main(void)
             MAT_AT(m.a0, 0, 1) = j;
             forward_xor(m);
             float y = MAT_AT(m.a2, 0, 0);
-            printf("%zu ^ %zu = %f\n", i, j, forward_xor(m));
+            printf("%zu ^ %zu = %f\n", i, j, y);
         }
     }
 #endif
+
+    xor_free(m);
+    xor_free(g);
+
     return 0;
 }
