@@ -56,10 +56,18 @@ typedef struct
     Mat *as; // The amount of activations is count + 1
 } NN;
 
-NN nn_alloc(size_t *arch, size_t arch_count);
-void nn_print(NN nn, const char *name);
+#define NN_INPUT(nn) (nn).as[0]
+#define NN_OUTPUT(nn) (nn).as[(nn).count]
 
+NN nn_alloc(size_t *arch, size_t arch_count);
+void nn_free(NN nn);
+void nn_print(NN nn, const char *name);
 #define NN_PRINT(nn) nn_print(nn, #nn)
+void rand_nn(NN nn, float low, float high);
+void nn_forward(NN nn);
+float nn_cost(NN nn, Mat ti, Mat to);
+void nn_finite_diff(NN m, NN g, float eps, Mat in, Mat out);
+void nn_learn(NN nn, NN g, float rate);
 
 #endif // NN_H
 
@@ -225,6 +233,20 @@ NN nn_alloc(size_t *arch, size_t arch_count)
     return nn;
 }
 
+void nn_free(NN nn)
+{
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        nn.ws[i] = mat_free(nn.ws[i]);
+        nn.bs[i] = mat_free(nn.bs[i]);
+        nn.as[i] = mat_free(nn.as[i]);
+    }
+    nn.as[nn.count] = mat_free(nn.as[nn.count]);
+    NN_FREE(nn.ws);
+    NN_FREE(nn.bs);
+    NN_FREE(nn.as);
+}
+
 void nn_print(NN nn, const char *name)
 {
     char buf[256];
@@ -232,11 +254,112 @@ void nn_print(NN nn, const char *name)
     for (size_t i = 0; i < nn.count; ++i)
     {
         snprintf(buf, sizeof(buf), "ws%zu", i);
-        mat_print(nn.ws[i], "ws", 4);
+        mat_print(nn.ws[i], buf, 4);
         snprintf(buf, sizeof(buf), "bs%zu", i);
-        mat_print(nn.bs[i], "bs", 4);
+        mat_print(nn.bs[i], buf, 4);
     }
     printf("]\n");
+}
+
+void nn_rand(NN nn, float low, float high)
+{
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        mat_rand(nn.ws[i], low, high);
+        mat_rand(nn.bs[i], low, high);
+    }
+}
+
+void nn_forward(NN nn)
+{
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        mat_dot(nn.as[i + 1], nn.as[i], nn.ws[i]);
+        mat_sum(nn.as[i + 1], nn.bs[i]);
+        mat_sig(nn.as[i + 1]);
+    }
+}
+
+float nn_cost(NN nn, Mat ti, Mat to)
+{
+    assert(ti.rows == to.rows);
+    assert(to.cols == NN_OUTPUT(nn).cols);
+    size_t n = ti.rows;
+
+    float c = 0;
+    for (size_t i = 0; i < n; ++i)
+    {
+        Mat x = mat_row(ti, i);
+        Mat y = mat_row(to, i);
+        mat_copy(NN_INPUT(nn), x);
+        nn_forward(nn);
+
+        size_t q = to.cols;
+        for (size_t j = 0; j < q; ++j)
+        {
+            float d = MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(y, 0, j);
+            c += d * d;
+        }
+    }
+    return c / n;
+}
+
+void nn_finite_diff(NN nn, NN g, float eps, Mat ti, Mat to)
+{
+    float saved;
+    float c = nn_cost(nn, ti, to);
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        for (size_t j = 0; j < nn.ws[i].rows; ++j)
+        {
+            for (size_t k = 0; k < nn.ws[i].cols; ++k)
+            {
+                saved = MAT_AT(nn.ws[i], j, k);
+                MAT_AT(nn.ws[i], j, k) += eps;
+                MAT_AT(g.ws[i], j, k) = (nn_cost(nn, ti, to) - c) / eps;
+                MAT_AT(nn.ws[i], j, k) = saved;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        for (size_t j = 0; j < nn.bs[i].rows; ++j)
+        {
+            for (size_t k = 0; k < nn.bs[i].cols; ++k)
+            {
+                saved = MAT_AT(nn.bs[i], j, k);
+                MAT_AT(nn.bs[i], j, k) += eps;
+                MAT_AT(g.bs[i], j, k) = (nn_cost(nn, ti, to) - c) / eps;
+                MAT_AT(nn.bs[i], j, k) = saved;
+            }
+        }
+    }
+}
+
+void nn_learn(NN nn, NN g, float rate)
+{
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        for (size_t j = 0; j < nn.ws[i].rows; ++j)
+        {
+            for (size_t k = 0; k < nn.ws[i].cols; ++k)
+            {
+                MAT_AT(nn.ws[i], j, k) -= MAT_AT(g.ws[i], j, k) * rate;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < nn.count; ++i)
+    {
+        for (size_t j = 0; j < nn.bs[i].rows; ++j)
+        {
+            for (size_t k = 0; k < nn.bs[i].cols; ++k)
+            {
+                MAT_AT(nn.bs[i], j, k) -= MAT_AT(g.bs[i], j, k) * rate;
+            }
+        }
+    }
 }
 
 #endif // NN_H
