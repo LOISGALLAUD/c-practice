@@ -1,7 +1,7 @@
 #include <time.h>
 
 #define NN_IMPLEMENTATION
-#include "nn0.h"
+#include "nn.h"
 
 float td_xor[] = {
     0,
@@ -24,10 +24,10 @@ float td_or[] = {
     0,
     0,
     1,
-    1,
-    1,
     0,
     1,
+    0,
+    0,
     1,
     1,
     1,
@@ -37,7 +37,7 @@ int main(void)
 {
     srand(time(0));
 
-    float *td = td_xor;
+    float *td = td_or;
 
     size_t stride = 3;
     size_t n = 4;
@@ -51,8 +51,7 @@ int main(void)
         .rows = n,
         .cols = 1,
         .stride = stride,
-        .es = td + 2,
-    };
+        .es = td + 2};
 
     size_t arch[] = {2, 2, 1};
     NN nn = nn_alloc(arch, ARRAY_LEN(arch));
@@ -62,23 +61,14 @@ int main(void)
     float eps = 1e-1;
     float rate = 1e-1;
 
-    clock_t start_time, end_time;
-    double elapsed_time;
-
-    start_time = clock();
-
-    printf("cost = %f\n", nn_cost(nn, ti, to));
-    for (size_t i = 0; i < 1000 * 100; ++i)
+    printf("cost: %f\n", nn_cost(nn, ti, to));
+    for (size_t i = 0; i < 100 * 1000; ++i)
     {
         nn_finite_diff(nn, g, eps, ti, to);
         nn_learn(nn, g, rate);
-        // printf("%zu: cost = %f\n", i, nn_cost(nn, ti, to));
-    }
-    printf("cost = %f\n", nn_cost(nn, ti, to));
-    end_time = clock();
-    elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-    printf("Runtime : %f seconds\n", elapsed_time);
+        printf("%zu cost: %f\n", i, nn_cost(nn, ti, to));
+    }
 
     NN_PRINT(nn);
 

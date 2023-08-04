@@ -37,7 +37,7 @@ int main(void)
 {
     srand(time(0));
 
-    float *td = td_xor;
+    float *td = td_or;
 
     size_t stride = 3;
     size_t n = 4;
@@ -53,7 +53,7 @@ int main(void)
         .stride = stride,
         .es = td + 2};
 
-    size_t arch[] = {2, 4, 1};
+    size_t arch[] = {2, 2, 1};
     NN nn = nn_alloc(arch, ARRAY_LEN(arch));
     NN g = nn_alloc(arch, ARRAY_LEN(arch));
     nn_rand(nn, 0, 1);
@@ -66,6 +66,7 @@ int main(void)
     {
         nn_finite_diff(nn, g, eps, ti, to);
         nn_learn(nn, g, rate);
+
         printf("%zu cost: %f\n", i, nn_cost(nn, ti, to));
     }
 
