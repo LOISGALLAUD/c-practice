@@ -39,7 +39,7 @@ sample xor_train[] = {
     {1, 1, 0},
 };
 
-sample *train = nand_train;
+sample *train = and_train;
 size_t train_count = 4;
 
 float cost(float w1, float w2, float b)
@@ -117,13 +117,13 @@ int main(void)
 
     float rate = 1e-1;
 
-    for (size_t i = 0; i < 1000 * 1000; ++i)
+    for (size_t i = 0; i < 10 * 1000; ++i)
     {
         float c = cost(w1, w2, b);
         printf("c = %f, w1 = %f, w2 = %f, b = %f\n", c, w1, w2, b);
 
         float dw1, dw2, db;
-#if 0
+#if 1
         float eps = 1e-1;
         dcost(eps, w1, w2, b, &dw1, &dw2, &db);
 #else
