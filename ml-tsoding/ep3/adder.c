@@ -33,7 +33,7 @@ int main(void)
     float rate = 1e-1;
 
     printf("c = %f\n", nn_cost(nn, ti, to));
-    for (size_t i = 0; i < 10 * 1000; ++i)
+    for (size_t i = 0; i < 100 * 1000; ++i)
     {
         nn_backprop(nn, g, ti, to);
         nn_learn(nn, g, rate);
