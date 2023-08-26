@@ -22,7 +22,7 @@ int main()
     if (curl)
     {
         // URL à scraper
-        const char *url = "https://bandcamp.com/tag/ambient";
+        const char *url = "https://example.com"; 
 
         // Configuration de l'URL et de la fonction de callback pour les données reçues
         curl_easy_setopt(curl, CURLOPT_URL, url);
