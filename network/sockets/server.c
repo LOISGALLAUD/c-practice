@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
     }
 
     // Forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | 0, &opt,
                    sizeof(opt)))
     {
         perror("setsockopt"); // print error message
